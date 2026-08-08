@@ -1,0 +1,649 @@
+-- [[ SCRIPT DO KAUANZINHO - COMPLETO ]] --
+-- Farm + Quest + Fast Attack + Chest + Fruit + Spin + ESP + Store + Loja
+
+if getgenv().KauanzinhoLoaded then return end
+getgenv().KauanzinhoLoaded = true
+
+local Config = {
+    AutoFarm = false,
+    AutoQuest = true,
+    FastAttack = true,
+    AttackMode = "Melee",
+    AttackSpeed = 0.09,
+    Height = 20,
+    HitboxSize = 40,
+    AutoChest = false,
+    AutoFruit = false,
+    AutoSpinFruit = false,
+    AutoBuy = false,
+    Collecting = false,
+    FlySpeed = 95,
+    FruitESP = false,
+    AutoStore = false
+}
+
+local Players = game:GetService("Players")
+local RS = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local VirtualUser = game:GetService("VirtualUser")
+local LP = Players.LocalPlayer
+local ProtectedGui = (gethui and gethui()) or game:GetService("CoreGui")
+
+local Net = RS:FindFirstChild("Modules") and RS.Modules:FindFirstChild("Net")
+local RegisterAttack = Net and Net:FindFirstChild("RE/RegisterAttack")
+local RegisterHit = Net and Net:FindFirstChild("RE/RegisterHit")
+
+local function CommF(...)
+    local remotes = RS:FindFirstChild("Remotes")
+    if remotes then
+        local comm = remotes:FindFirstChild("CommF_")
+        if comm then
+            local success, res = pcall(comm.InvokeServer, comm, ...)
+            if success then return res end
+        end
+    end
+end
+
+local Level = 1
+task.spawn(function()
+    while task.wait(0.5) do
+        pcall(function()
+            if LP.Data and LP.Data.Level then
+                Level = LP.Data.Level.Value
+            end
+        end)
+    end
+end)
+
+-- Login
+local LoginGui = Instance.new("ScreenGui", ProtectedGui)
+LoginGui.Name = "KauanzinhoLogin"
+local MainFrame = Instance.new("Frame", LoginGui)
+MainFrame.Size = UDim2.new(0, 240, 0, 130)
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -65)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BorderColor3 = Color3.fromRGB(0, 255, 120)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+
+local TitleLogin = Instance.new("TextLabel", MainFrame)
+TitleLogin.Size = UDim2.new(1, 0, 0, 35)
+TitleLogin.BackgroundTransparency = 1
+TitleLogin.TextColor3 = Color3.fromRGB(0, 255, 120)
+TitleLogin.Text = "🔒 SCRIPT DO KAUANZINHO"
+TitleLogin.TextSize = 13
+TitleLogin.Font = Enum.Font.SourceSansBold
+
+local Input = Instance.new("TextBox", MainFrame)
+Input.Size = UDim2.new(0.8, 0, 0, 32)
+Input.Position = UDim2.new(0.1, 0, 0.38, 0)
+Input.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+Input.TextColor3 = Color3.fromRGB(255, 255, 255)
+Input.PlaceholderText = "Digite a senha (67)..."
+Input.Text = ""
+Instance.new("UICorner", Input).CornerRadius = UDim.new(0, 6)
+
+local OKBtn = Instance.new("TextButton", MainFrame)
+OKBtn.Size = UDim2.new(0.8, 0, 0, 32)
+OKBtn.Position = UDim2.new(0.1, 0, 0.72, 0)
+OKBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+OKBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+OKBtn.Text = "ENTRAR"
+OKBtn.Font = Enum.Font.SourceSansBold
+Instance.new("UICorner", OKBtn).CornerRadius = UDim.new(0, 6)
+
+-- Dados
+local NPCPoints = {
+    ["Bandit"] = CFrame.new(1059, 16, 1549),
+    ["Monkey"] = CFrame.new(-1600, 36, 150),
+    ["Gorilla"] = CFrame.new(-1600, 36, 150),
+    ["Pirate"] = CFrame.new(-1140, 4, 3828),
+    ["Brute"] = CFrame.new(-1140, 4, 3828),
+    ["Desert Bandit"] = CFrame.new(896, 6, 4390),
+    ["Snow Bandit"] = CFrame.new(1389, 87, -1298),
+    ["Yeti"] = CFrame.new(1389, 87, -1298),
+    ["Chief Petty Officer"] = CFrame.new(-5035, 20, 4324),
+    ["Sky Bandit"] = CFrame.new(-4842, 717, -2623),
+    ["Prisoner"] = CFrame.new(5308, 2, 497),
+    ["Dangerous Prisoner"] = CFrame.new(5308, 2, 497),
+    ["Toga Warrior"] = CFrame.new(-1580, 14, -2985),
+    ["Military Soldier"] = CFrame.new(-5316, 11, 8515),
+    ["Fishman Warrior"] = CFrame.new(6112, 19, 1565),
+}
+
+local SpawnPoints = {
+    ["Bandit"] = CFrame.new(1160, 17, 1530),
+    ["Monkey"] = CFrame.new(-1498, 39, 52),
+    ["Gorilla"] = CFrame.new(-1236, 10, -505),
+    ["Pirate"] = CFrame.new(-1145, 5, 3827),
+    ["Brute"] = CFrame.new(-1145, 5, 3827),
+    ["Desert Bandit"] = CFrame.new(930, 7, 4480),
+    ["Snow Bandit"] = CFrame.new(1200, 106, -1480),
+    ["Yeti"] = CFrame.new(1200, 106, -1480),
+    ["Chief Petty Officer"] = CFrame.new(-4830, 21, 4320),
+    ["Sky Bandit"] = CFrame.new(-4800, 718, -2620),
+    ["Prisoner"] = CFrame.new(5190, 4, 740),
+    ["Dangerous Prisoner"] = CFrame.new(5190, 4, 740),
+    ["Toga Warrior"] = CFrame.new(-1830, 8, -2740),
+    ["Military Soldier"] = CFrame.new(-5430, 16, 8510),
+    ["Fishman Warrior"] = CFrame.new(6112, 19, 1565),
+    ["God's Guard"] = CFrame.new(-4720, 845, -1950),
+    ["Shandia Warrior"] = CFrame.new(-5430, 313, -2870),
+    ["Galley Pirate"] = CFrame.new(5550, 39, 3950),
+    ["Raider"] = CFrame.new(-450, 73, 300),
+    ["Mercenary"] = CFrame.new(-450, 73, 300),
+    ["Swan Pirate"] = CFrame.new(980, 125, 330),
+    ["Factory Staff"] = CFrame.new(300, 73, -50),
+    ["Marine Lieutenant"] = CFrame.new(-2800, 73, -3850),
+    ["Marine Captain"] = CFrame.new(-2800, 73, -3850),
+    ["Zombie"] = CFrame.new(-5600, 50, -900),
+    ["Vampire"] = CFrame.new(-5600, 50, -900),
+    ["Snow Trooper"] = CFrame.new(600, 400, -5500),
+    ["Winter Warrior"] = CFrame.new(600, 400, -5500),
+    ["Lab Subordinate"] = CFrame.new(-5800, 16, -1500),
+    ["Horned Warrior"] = CFrame.new(-5800, 16, -1500),
+    ["Magma Ninja"] = CFrame.new(-5400, 18, -5950),
+    ["Ship Pirate"] = CFrame.new(920, 125, 330),
+    ["Pirate Millionaire"] = CFrame.new(-370, 74, 5450),
+    ["Pistol Billionaire"] = CFrame.new(-370, 74, 5450),
+    ["Dragon Crew Warrior"] = CFrame.new(5550, 60, 850),
+    ["Dragon Crew Archer"] = CFrame.new(5550, 60, 850),
+    ["Female Islander"] = CFrame.new(5650, 40, 870),
+    ["Giant Islander"] = CFrame.new(5650, 40, 870),
+    ["Jungle Pirate"] = CFrame.new(-12500, 332, -10500),
+    ["Musketeer Pirate"] = CFrame.new(-12500, 332, -10500),
+    ["Reborn Skeleton"] = CFrame.new(-9500, 175, 6050),
+    ["Living Zombie"] = CFrame.new(-9500, 175, 6050),
+    ["Demonic Soul"] = CFrame.new(-9500, 175, 6050),
+    ["Posessed Mummy"] = CFrame.new(-9500, 175, 6050),
+    ["Peanut Scout"] = CFrame.new(-7900, 15, -380),
+    ["Peanut President"] = CFrame.new(-7900, 15, -380),
+    ["Ice Cream Chef"] = CFrame.new(-850, 65, -10950),
+    ["Ice Cream Commander"] = CFrame.new(-850, 65, -10950),
+    ["Cookie Crafter"] = CFrame.new(-2300, 38, -12000),
+    ["Cake Guard"] = CFrame.new(-2300, 38, -12000),
+    ["Baking Staff"] = CFrame.new(-2300, 38, -12000),
+    ["Head Baker"] = CFrame.new(-2300, 38, -12000),
+    ["Cocoa Warrior"] = CFrame.new(200, 25, -12000),
+}
+
+local function GetSea()
+    local id = game.PlaceId
+    if id == 4442272183 then return 2 end
+    if id == 7449423635 then return 3 end
+    return 1
+end
+
+local Quests = {
+    [1] = {
+        {1,9,"BanditQuest1",1,"Bandit"}, {10,14,"JungleQuest",1,"Monkey"}, {15,29,"JungleQuest",2,"Gorilla"},
+        {30,39,"BuggyQuest1",1,"Pirate"}, {40,59,"BuggyQuest1",2,"Brute"},
+        {60,89,"DesertQuest",1,"Desert Bandit"},
+        {90,99,"SnowQuest",1,"Snow Bandit"}, {100,119,"SnowQuest",2,"Yeti"}, {120,149,"MarineQuest2",1,"Chief Petty Officer"},
+        {150,189,"SkyQuest",1,"Sky Bandit"}, {190,209,"PrisonerQuest",1,"Prisoner"}, {210,249,"PrisonerQuest",2,"Dangerous Prisoner"},
+        {250,299,"ColosseumQuest",1,"Toga Warrior"}, {300,374,"MagmaQuest",1,"Military Soldier"},
+        {375,449,"FishmanQuest",1,"Fishman Warrior"}, {450,524,"SkyExp1Quest",1,"God's Guard"},
+        {525,624,"SkyExp2Quest",1,"Shandia Warrior"}, {625,699,"FountainQuest",1,"Galley Pirate"},
+    },
+    [2] = {
+        {700,724,"Area1Quest",1,"Raider"}, {725,774,"Area1Quest",2,"Mercenary"}, {775,874,"Area2Quest",1,"Swan Pirate"},
+        {875,924,"FactoryQuest",1,"Factory Staff"}, {925,974,"MarineQuest3",1,"Marine Lieutenant"}, {975,999,"MarineQuest3",2,"Marine Captain"},
+        {1000,1049,"ZombieQuest",1,"Zombie"}, {1050,1099,"ZombieQuest",2,"Vampire"}, {1100,1149,"SnowMountainQuest",1,"Snow Trooper"},
+        {1150,1249,"SnowMountainQuest",2,"Winter Warrior"}, {1250,1299,"IceSideQuest",1,"Lab Subordinate"},
+        {1300,1349,"IceSideQuest",2,"Horned Warrior"}, {1350,1424,"FireSideQuest",1,"Magma Ninja"}, {1425,1499,"ShipQuest1",1,"Ship Pirate"},
+    },
+    [3] = {
+        {1500,1524,"PiratePortQuest",1,"Pirate Millionaire"}, {1525,1574,"PiratePortQuest",2,"Pistol Billionaire"},
+        {1575,1624,"AmazonQuest",1,"Dragon Crew Warrior"}, {1625,1699,"AmazonQuest2",2,"Dragon Crew Archer"},
+        {1700,1724,"AmazonQuest2",1,"Female Islander"}, {1725,1774,"AmazonQuest2",2,"Giant Islander"},
+        {1775,1824,"MarineTreeIslandQuest",1,"Jungle Pirate"}, {1825,1899,"MarineTreeIslandQuest",2,"Musketeer Pirate"},
+        {1900,1924,"HauntedQuest1",1,"Reborn Skeleton"}, {1925,1974,"HauntedQuest1",2,"Living Zombie"},
+        {1975,2024,"HauntedQuest2",1,"Demonic Soul"}, {2025,2074,"HauntedQuest2",2,"Posessed Mummy"},
+        {2075,2124,"NutsIslandQuest",1,"Peanut Scout"}, {2125,2174,"NutsIslandQuest",2,"Peanut President"},
+        {2175,2224,"IceCreamIslandQuest",1,"Ice Cream Chef"}, {2225,2299,"IceCreamIslandQuest",2,"Ice Cream Commander"},
+        {2300,2349,"CakeQuest1",1,"Cookie Crafter"}, {2350,2399,"CakeQuest1",2,"Cake Guard"},
+        {2400,2449,"CakeQuest2",1,"Baking Staff"}, {2450,2499,"CakeQuest2",2,"Head Baker"},
+        {2500,3000,"ChocQuest1",1,"Cocoa Warrior"},
+    }
+}
+
+local function GetCurrentQuestData()
+    local list = Quests[GetSea()] or Quests[1]
+    for _, q in ipairs(list) do
+        if Level >= q[1] and Level <= q[2] then
+            return {Name = q[3], Level = q[4], Mob = q[5]}
+        end
+    end
+    local last = list[#list]
+    return {Name = last[3], Level = last[4], Mob = last[5]}
+end
+
+local function FindMob(name)
+    local folder = workspace:FindFirstChild("Enemies")
+    if not folder then return nil end
+    for _, v in ipairs(folder:GetChildren()) do
+        if v.Name == name then
+            local hum = v:FindFirstChildOfClass("Humanoid")
+            local root = v:FindFirstChild("HumanoidRootPart")
+            if hum and root and hum.Health > 0 then
+                return v, root
+            end
+        end
+    end
+end
+
+local function EquipWeapon()
+    local char = LP.Character
+    if not char or not char:FindFirstChild("Humanoid") then return end
+    local target = Config.AttackMode
+    for _, item in ipairs(LP.Backpack:GetChildren()) do
+        if item:IsA("Tool") then
+            local tt = item.ToolTip
+            if item:FindFirstChild("ToolTip") then tt = item.ToolTip.Value end
+            if target == "Melee" and (tt == "Melee" or item.Name:lower():find("combat") or item.Name:lower():find("step") or item.Name:lower():find("fist")) then
+                char.Humanoid:EquipTool(item)
+                return
+            elseif target == "Sword" and (tt == "Sword" or item.Name:lower():find("sword") or item.Name:lower():find("katana") or item.Name:lower():find("bisento")) then
+                char.Humanoid:EquipTool(item)
+                return
+            elseif target == "Fruit" and (tt == "Blox Fruit" or item.Name:lower():find("fruit")) then
+                char.Humanoid:EquipTool(item)
+                return
+            end
+        end
+    end
+end
+
+local function IniciarScript()
+    pcall(function() LoginGui:Destroy() end)
+
+    local success, Rayfield = pcall(function()
+        return loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+    end)
+
+    if success and Rayfield then
+        local Window = Rayfield:CreateWindow({
+            Name = "SCRIPT DO KAUANZINHO",
+            LoadingTitle = "Carregando Hub...",
+            LoadingSubtitle = "Completo",
+            ConfigurationSaving = {Enabled = false},
+            KeySystem = false
+        })
+
+        local TabFarm = Window:CreateTab("📜 Farm & Combat", 4483362458)
+        local TabLoja = Window:CreateTab("🛒 Loja Completa", 4483362458)
+        local TabMisc = Window:CreateTab("💎 Auto Coleta", 4483362458)
+
+        -- Farm
+        TabFarm:CreateSection("Controle Principal")
+        TabFarm:CreateToggle({Name = "Auto Farm", CurrentValue = Config.AutoFarm, Callback = function(v) Config.AutoFarm = v end})
+        TabFarm:CreateToggle({Name = "Auto Quest Inteligente", CurrentValue = Config.AutoQuest, Callback = function(v) Config.AutoQuest = v end})
+        TabFarm:CreateToggle({Name = "Fast Attack", CurrentValue = Config.FastAttack, Callback = function(v) Config.FastAttack = v end})
+
+        TabFarm:CreateDropdown({
+            Name = "Modo de Ataque",
+            Options = {"Melee", "Sword", "Fruit"},
+            CurrentOption = {"Melee"},
+            MultipleOptions = false,
+            Callback = function(Option)
+                local choice = type(Option) == "table" and Option[1] or Option
+                Config.AttackMode = choice
+            end
+        })
+
+        TabFarm:CreateSlider({
+            Name = "Velocidade Fast Attack",
+            Range = {0.05, 0.20},
+            Increment = 0.01,
+            CurrentValue = Config.AttackSpeed,
+            Callback = function(Value)
+                Config.AttackSpeed = Value
+            end,
+        })
+
+        TabFarm:CreateSlider({
+            Name = "Velocidade de Voo (Segura)",
+            Range = {50, 150},
+            Increment = 5,
+            CurrentValue = Config.FlySpeed,
+            Callback = function(Value)
+                Config.FlySpeed = Value
+            end,
+        })
+
+        -- Loja
+        TabLoja:CreateSection("Haki & Habilidades")
+        TabLoja:CreateButton({Name = "Comprar Buso Haki", Callback = function() CommF("BuyHaki", "Buso") end})
+        TabLoja:CreateButton({Name = "Comprar Geppo", Callback = function() CommF("BuyHaki", "Geppo") end})
+        TabLoja:CreateButton({Name = "Comprar Soru", Callback = function() CommF("BuyHaki", "Soru") end})
+        TabLoja:CreateButton({Name = "Comprar Observation (Ken)", Callback = function() CommF("KenTalk", "Buy") end})
+
+        TabLoja:CreateSection("Estilos de Luta")
+        TabLoja:CreateButton({Name = "Black Leg", Callback = function() CommF("BuyBlackLeg") end})
+        TabLoja:CreateButton({Name = "Electro", Callback = function() CommF("BuyElectro") end})
+        TabLoja:CreateButton({Name = "Fishman Karate", Callback = function() CommF("BuyFishmanKarate") end})
+        TabLoja:CreateButton({Name = "Dragon Claw", Callback = function() CommF("BlackbeardReward", "DragonClaw", "2") end})
+        TabLoja:CreateButton({Name = "Superhuman", Callback = function() CommF("BuySuperhuman") end})
+        TabLoja:CreateButton({Name = "Death Step", Callback = function() CommF("BuyDeathStep") end})
+        TabLoja:CreateButton({Name = "Sharkman Karate", Callback = function() CommF("BuySharkmanKarate") end})
+        TabLoja:CreateButton({Name = "Electric Claw", Callback = function() CommF("BuyElectricClaw") end})
+        TabLoja:CreateButton({Name = "Dragon Talon", Callback = function() CommF("BuyDragonTalon") end})
+        TabLoja:CreateButton({Name = "Godhuman", Callback = function() CommF("BuyGodhuman") end})
+        TabLoja:CreateButton({Name = "Sanguine Art", Callback = function() CommF("BuySanguineArt") end})
+
+        TabLoja:CreateSection("Espadas & Itens")
+        local Swords = {"Cutlass", "Katana", "Iron Mace", "Pipe", "Dual-Headed Blade", "Bisento", "Soul Cane", "Triple Katana", "Buddy Sword", "Canvander", "Tushita"}
+        for _, sword in ipairs(Swords) do
+            TabLoja:CreateButton({
+                Name = "Comprar " .. sword,
+                Callback = function() CommF("BuyItem", sword) end
+            })
+        end
+
+        TabLoja:CreateSection("Outros")
+        TabLoja:CreateButton({Name = "Girar Fruta (Gacha)", Callback = function() CommF("Cousin", "Buy") end})
+        TabLoja:CreateButton({Name = "Comprar Fruta Aleatória", Callback = function() CommF("RandomFruit") end})
+
+        -- Auto Coleta
+        TabMisc:CreateSection("Coleta Automática")
+        TabMisc:CreateToggle({Name = "Auto Coletar Baús", CurrentValue = Config.AutoChest, Callback = function(v) Config.AutoChest = v end})
+        TabMisc:CreateToggle({Name = "Auto Coletar Frutas", CurrentValue = Config.AutoFruit, Callback = function(v) Config.AutoFruit = v end})
+        TabMisc:CreateToggle({Name = "Auto Girar Fruta (Gacha)", CurrentValue = Config.AutoSpinFruit, Callback = function(v) Config.AutoSpinFruit = v end})
+        TabMisc:CreateToggle({Name = "Auto Comprar Buso (Lv 50+)", CurrentValue = Config.AutoBuy, Callback = function(v) Config.AutoBuy = v end})
+        TabMisc:CreateToggle({Name = "Fruit ESP", CurrentValue = Config.FruitESP, Callback = function(v) Config.FruitESP = v end})
+        TabMisc:CreateToggle({Name = "Auto Store Fruit", CurrentValue = Config.AutoStore, Callback = function(v) Config.AutoStore = v end})
+
+        TabMisc:CreateSection("Ações Rápidas")
+        TabMisc:CreateButton({Name = "Girar Fruta Agora", Callback = function() CommF("Cousin", "Buy") end})
+        TabMisc:CreateButton({Name = "Guardar Fruta (Store)", Callback = function() CommF("StoreFruit") end})
+
+        local ScreenGui = Instance.new("ScreenGui", ProtectedGui)
+        local FloatBtn = Instance.new("ImageButton", ScreenGui)
+        FloatBtn.Size = UDim2.new(0, 52, 0, 52)
+        FloatBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
+        FloatBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        FloatBtn.Image = "rbxassetid://6031068433"
+        FloatBtn.Draggable = true
+        Instance.new("UICorner", FloatBtn).CornerRadius = UDim.new(1, 0)
+
+        FloatBtn.MouseButton1Click:Connect(function()
+            Rayfield:ToggleUI()
+        end)
+    end
+
+    -- Fast Attack
+    task.spawn(function()
+        while true do
+            task.wait(Config.AttackSpeed)
+            if Config.AutoFarm and Config.FastAttack and RegisterAttack and RegisterHit and not Config.Collecting then
+                pcall(function()
+                    local char = LP.Character
+                    if not char then return end
+                    EquipWeapon()
+                    local qData = GetCurrentQuestData()
+                    local mob, mobRoot = FindMob(qData.Mob)
+                    if not mob or not mobRoot then return end
+                    local parts = {"RightLowerArm","RightUpperArm","LeftLowerArm","LeftUpperArm","RightHand","LeftHand"}
+                    local hitPart = mob:FindFirstChild(parts[math.random(1,#parts)]) or mobRoot
+                    RegisterAttack:FireServer(0.2)
+                    RegisterHit:FireServer(hitPart, {{mob, hitPart}})
+                end)
+            end
+        end
+    end)
+
+    -- Noclip
+    RunService.Stepped:Connect(function()
+        if Config.AutoFarm and not Config.Collecting then
+            local char = LP.Character
+            if char then
+                for _, v in pairs(char:GetDescendants()) do
+                    if v:IsA("BasePart") then v.CanCollide = false end
+                end
+            end
+        end
+    end)
+
+    -- Anti AFK
+    LP.Idled:Connect(function()
+        VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+        task.wait(1)
+        VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    end)
+
+    -- Farm
+    local lastValidPos = nil
+    local lastQuestTry = 0
+    local currentMob = nil
+
+    RunService.Heartbeat:Connect(function(deltaTime)
+        if not Config.AutoFarm or Config.Collecting then return end
+
+        pcall(function()
+            local char = LP.Character
+            if not char then return end
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if not root then return end
+
+            local qData = GetCurrentQuestData()
+            local gui = LP.PlayerGui:FindFirstChild("Main")
+            local questFrame = gui and gui:FindFirstChild("Quest")
+            local hasQuest = questFrame and questFrame.Visible
+            local wrongQuest = false
+
+            if hasQuest then
+                local container = questFrame:FindFirstChild("Container")
+                local title = container and container:FindFirstChild("Title")
+                if title and not title.Text:find(qData.Mob) then
+                    wrongQuest = true
+                end
+            end
+
+            local targetPos = nil
+
+            if not hasQuest or wrongQuest then
+                if wrongQuest then CommF("AbandonQuest") end
+                local npcCF = NPCPoints[qData.Mob] or SpawnPoints[qData.Mob]
+                if npcCF then
+                    targetPos = npcCF.Position + Vector3.new(0, 5, 0)
+                    if (root.Position - targetPos).Magnitude < 15 and (tick() - lastQuestTry) > 1.8 then
+                        lastQuestTry = tick()
+                        CommF("StartQuest", qData.Name, qData.Level)
+                    end
+                end
+            else
+                if not (currentMob and currentMob.Parent and currentMob:FindFirstChild("Humanoid") and currentMob.Humanoid.Health > 0) then
+                    currentMob = nil
+                    local mob = FindMob(qData.Mob)
+                    if mob then currentMob = mob end
+                end
+
+                if currentMob and currentMob:FindFirstChild("HumanoidRootPart") then
+                    local mobRoot = currentMob.HumanoidRootPart
+                    targetPos = mobRoot.Position + Vector3.new(0, Config.Height, 0)
+                    lastValidPos = targetPos
+                else
+                    local spawnCF = SpawnPoints[qData.Mob]
+                    if spawnCF then
+                        targetPos = spawnCF.Position + Vector3.new(0, Config.Height, 0)
+                    elseif lastValidPos then
+                        targetPos = lastValidPos
+                    else
+                        targetPos = root.Position
+                    end
+                end
+            end
+
+            if targetPos then
+                local currentPos = root.Position
+                local direction = targetPos - currentPos
+                local distance = direction.Magnitude
+
+                if distance > 5 then
+                    local flySpeed = Config.FlySpeed * deltaTime
+                    if flySpeed > distance then flySpeed = distance end
+                    root.Velocity = Vector3.zero
+                    root.CFrame = CFrame.new(currentPos + direction.Unit * flySpeed)
+                else
+                    root.Velocity = Vector3.zero
+                    if hasQuest and not wrongQuest and currentMob and currentMob:FindFirstChild("HumanoidRootPart") then
+                        root.CFrame = currentMob.HumanoidRootPart.CFrame * CFrame.new(0, Config.Height, 0)
+                    else
+                        root.CFrame = CFrame.new(targetPos)
+                    end
+                end
+            end
+        end)
+    end)
+
+    -- Loop de Apoio (Baús + Frutas + Girar)
+    task.spawn(function()
+        while task.wait(2) do
+            pcall(function()
+                local char = LP.Character
+                if not char then return end
+                local root = char:FindFirstChild("HumanoidRootPart")
+                if not root then return end
+
+                if not char:FindFirstChild("HasBuso") then
+                    CommF("Buso")
+                end
+
+                if Config.AutoBuy and Level >= 50 then
+                    CommF("BuyHaki", "Buso")
+                end
+
+                if Config.AutoSpinFruit then
+                    CommF("Cousin", "Buy")
+                end
+
+                if Config.AutoFruit then
+                    local fruits = {}
+                    for _, v in pairs(workspace:GetChildren()) do
+                        if v:IsA("Tool") and v:FindFirstChild("Handle") then
+                            table.insert(fruits, v.Handle)
+                        end
+                    end
+                    if #fruits > 0 then
+                        Config.Collecting = true
+                        for _, handle in ipairs(fruits) do
+                            if handle and handle.Parent then
+                                root.CFrame = handle.CFrame
+                                task.wait(0.5)
+                            end
+                        end
+                        task.wait(0.5)
+                        Config.Collecting = false
+                    end
+                end
+
+                if Config.AutoChest then
+                    local chests = {}
+                    for _, v in pairs(workspace:GetDescendants()) do
+                        if (v.Name == "Chest" or string.find(tostring(v.Name), "Chest")) and v:IsA("BasePart") then
+                            table.insert(chests, v)
+                        end
+                    end
+                    if #chests > 0 then
+                        Config.Collecting = true
+                        for _, chest in ipairs(chests) do
+                            if chest and chest.Parent then
+                                root.CFrame = chest.CFrame + Vector3.new(0, 2.5, 0)
+                                task.wait(0.7)
+                            end
+                        end
+                        task.wait(0.4)
+                        Config.Collecting = false
+                    end
+                end
+            end)
+        end
+    end)
+
+    -- ==========================================================
+    -- FRUIT ESP + AUTO STORE
+    -- ==========================================================
+    local ESPFolder = Instance.new("Folder")
+    ESPFolder.Name = "KauanzinhoFruitESP"
+    ESPFolder.Parent = ProtectedGui
+
+    local function ClearFruitESP()
+        for _, v in pairs(ESPFolder:GetChildren()) do
+            v:Destroy()
+        end
+    end
+
+    local function CreateFruitESP(fruit)
+        if not fruit or not fruit:FindFirstChild("Handle") then return end
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = fruit.Name
+        billboard.Adornee = fruit.Handle
+        billboard.Size = UDim2.new(0, 130, 0, 40)
+        billboard.StudsOffset = Vector3.new(0, 2.8, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = ESPFolder
+
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.Text = fruit.Name
+        label.TextColor3 = Color3.fromRGB(0, 255, 120)
+        label.TextStrokeTransparency = 0.3
+        label.TextScaled = true
+        label.Font = Enum.Font.GothamBold
+        label.Parent = billboard
+    end
+
+    task.spawn(function()
+        while task.wait(1.5) do
+            pcall(function()
+                -- Auto Store
+                if Config.AutoStore then
+                    for _, tool in pairs(LP.Backpack:GetChildren()) do
+                        if tool:IsA("Tool") and (string.find(tool.Name, "Fruit") or (tool:FindFirstChild("ToolTip") and tool.ToolTip.Value == "Blox Fruit")) then
+                            CommF("StoreFruit")
+                            break
+                        end
+                    end
+                    local char = LP.Character
+                    if char then
+                        for _, tool in pairs(char:GetChildren()) do
+                            if tool:IsA("Tool") and (string.find(tool.Name, "Fruit") or (tool:FindFirstChild("ToolTip") and tool.ToolTip.Value == "Blox Fruit")) then
+                                CommF("StoreFruit")
+                                break
+                            end
+                        end
+                    end
+                end
+
+                -- Fruit ESP
+                ClearFruitESP()
+                if Config.FruitESP then
+                    for _, v in pairs(workspace:GetChildren()) do
+                        if v:IsA("Tool") and v:FindFirstChild("Handle") then
+                            CreateFruitESP(v)
+                        end
+                    end
+                    for _, folder in pairs(workspace:GetChildren()) do
+                        if folder:IsA("Folder") or folder:IsA("Model") then
+                            for _, v in pairs(folder:GetChildren()) do
+                                if v:IsA("Tool") and v:FindFirstChild("Handle") then
+                                    CreateFruitESP(v)
+                                end
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end)
+end
+
+OKBtn.MouseButton1Click:Connect(function()
+    if Input.Text == "67" then
+        IniciarScript()
+    else
+        Input.Text = "ERRO"
+        task.wait(1)
+        Input.Text = ""
+    end
+end)
